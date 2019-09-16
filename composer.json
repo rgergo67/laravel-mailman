@@ -1,0 +1,15 @@
+{
+  "name": "rgergo67/laravel-mailman",
+  "description": "Interacting with mailman3 api",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Ratting Gergely",
+      "email": "rgergo67@gmail.com"
+    }
+  ],
+  "require": {},
+  "require-dev": {
+    "orchestra/testbench": "^4.0"
+  }
+}
