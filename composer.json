@@ -8,8 +8,31 @@
       "email": "rgergo67@gmail.com"
     }
   ],
-  "require": {},
+  "require": {
+    "ext-json": "*",
+    "guzzlehttp/guzzle": "^6.3"
+  },
   "require-dev": {
     "orchestra/testbench": "^4.0"
+  },
+  "autoload": {
+    "psr-4": {
+      "Rgergo67\\LaravelMailman\\": "src/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "Rgergo67\\LaravelMailman\\Tests\\": "tests/"
+    }
+  },
+  "extra": {
+    "laravel": {
+      "providers": [
+        "Rgergo67\\LaravelMailman\\MailmanServiceProvider"
+      ],
+      "aliases": {
+        "Mailman": "Rgergo67\\LaravelMailman\\Facedes\\Mailman"
+      }
+    }
   }
 }

@@ -1,0 +1,29 @@
+{
+   "start" : 0,
+   "http_etag" : "\"13a3789fd9608438e9dedd8f3db77a4d5f49c3c2\"",
+   "entries" : [
+      {
+         "list_id" : "first-list.localhost.com",
+         "http_etag" : "\"880eac3a52242886ae7f13d01cd3afa34f431fc9\"",
+         "fqdn_listname" : "first-list@localhost.com",
+         "volume" : 1,
+         "display_name" : "First-list",
+         "member_count" : 1,
+         "mail_host" : "localhost.com",
+         "self_link" : "http://localhost:8001/3.1/lists/first-list.localhost.com",
+         "list_name" : "first-list"
+      },
+      {
+         "list_name" : "second-list",
+         "self_link" : "http://localhost:8001/3.1/lists/second-list.localhost.com",
+         "mail_host" : "localhost.com",
+         "member_count" : 0,
+         "volume" : 1,
+         "display_name" : "Second-list",
+         "list_id" : "second-list.localhost.com",
+         "http_etag" : "\"55e7431afd8408b61249b4064fc35cd9e56a3b37\"",
+         "fqdn_listname" : "second-list@localhost.com"
+      }
+   ],
+   "total_size" : 2
+}

@@ -1,0 +1,18 @@
+{
+   "total_size" : 1,
+   "entries" : [
+      {
+         "member_id" : "9e7d6693fcb84dd2a93a3e32ad30aced",
+         "email" : "test@localhost.com",
+         "user" : "http://localhost:8001/3.1/users/6fd5b24eb4a944649221de573d1df64d",
+         "list_id" : "first-list.localhost.com",
+         "delivery_mode" : "regular",
+         "role" : "member",
+         "http_etag" : "\"01b41ecb811db916ffdc1b89be1c05c4a3c84f32\"",
+         "address" : "http://localhost:8001/3.1/addresses/test@localhost.com",
+         "self_link" : "http://localhost:8001/3.1/members/9e7d6693fcb84dd2a93a3e32ad30aced"
+      }
+   ],
+   "http_etag" : "\"b0d12437df9b0b81641a6f86faf364100566558d\"",
+   "start" : 0
+}
