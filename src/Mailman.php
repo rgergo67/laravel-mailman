@@ -9,6 +9,7 @@ use Rgergo67\LaravelMailman\Exceptions\EmailAlreadySubscribedException;
 use Rgergo67\LaravelMailman\Exceptions\EmailNotFoundException;
 use Rgergo67\LaravelMailman\Exceptions\InvalidEmailException;
 use Rgergo67\LaravelMailman\Exceptions\NonExistingListException;
+use Rgergo67\LaravelMailman\Exceptions\ResourceNotFoundException;
 
 class Mailman
 {
@@ -28,7 +29,7 @@ class Mailman
     }
 
     /**
-     * Send an HTTP request.
+     * Send an HTTP request to mailman api.
      *
      * @param  string  $method  HTTP method
      * @param  string  $endpoint  API endpoint
@@ -37,6 +38,7 @@ class Mailman
      * @return string
      * @throws GuzzleException
      * @throws InvalidEmailException
+     * @throws ResourceNotFoundException
      */
     protected function sendRequest($method, $endpoint, $body = [])
     {
@@ -45,6 +47,9 @@ class Mailman
             $content = $response->getBody()->getContents();
             return $content;
         } catch (ClientException $e) {
+            if ($e->getCode() === ResourceNotFoundException::MAILMAN_CODE) {
+                throw new ResourceNotFoundException;
+            }
             $errorMessage = ClientException::getResponseBodySummary($e->getResponse());
             if ($errorMessage === InvalidEmailException::MAILMAN_ERROR) {
                 throw new InvalidEmailException;
@@ -62,14 +67,21 @@ class Mailman
     protected function getEntries($response)
     {
         $json = json_decode($response, false, 512, JSON_BIGINT_AS_STRING);
-        $array = isset($json->entries) ? $json->entries : [];
-        return $array;
+        if (!is_null($json)) {
+            return isset($json->entries)
+                ? $json->entries
+                : $json;
+        }
+        return [];
     }
 
     /**
+     * Return all lists
+     *
      * @return array
      * @throws GuzzleException
      * @throws InvalidEmailException
+     * @throws ResourceNotFoundException
      */
     public function lists()
     {
@@ -80,90 +92,97 @@ class Mailman
     /**
      * Find a list by its name.
      *
-     * @param $fqdnName
+     * @param $name string fqdn_listname or list_id
      *
      * @return array|null
      * @throws GuzzleException
      * @throws InvalidEmailException
      * @throws NonExistingListException
      */
-    protected function getListByFqdnName($fqdnName)
+    protected function getList($name)
     {
-        $lists = $this->lists();
-        $index = array_search($fqdnName, array_column($lists, 'fqdn_listname'));
-        if ($index !== false) {
-            return $lists[$index];
-        } else {
+        try {
+            $response = $this->sendRequest('GET', "lists/{$name}");
+            return $this->getEntries($response);
+        } catch (ResourceNotFoundException $e) {
             throw new NonExistingListException;
         }
     }
 
     /**
-     * Returns if a request was successful or not.
+     * Returns lists where the given email address has a role (member, owner, etc)
      *
-     * @param string|null $response request's response
-     * @return bool
-     */
-    protected function getStatus($response)
-    {
-        return ! is_null($response);
-    }
-
-    /**
-     * @param $userEmail
+     * @param $email
      *
      * @return array
-     * @throws GuzzleException
-     * @throws InvalidEmailException
-     */
-    public function membership($userEmail)
-    {
-        $response = $this->sendRequest('GET', "addresses/{$userEmail}/memberships");
-        return $this->getEntries($response);
-    }
-
-    /**
-     * @param $listId
-     * @param $userEmail
-     *
-     * @return mixed
      * @throws EmailNotFoundException
      * @throws GuzzleException
      * @throws InvalidEmailException
      */
-    public function getListMemberById($listId, $userEmail)
+    public function getMemberships($email)
     {
-        $memberships = $this->membership($userEmail);
-        $key = array_search(
-            $listId,
-            array_column($memberships, 'list_id')
-        );
-        if ($key !== false) {
-            return $memberships[$key];
-        } else {
+        try {
+            $response = $this->sendRequest('GET', "addresses/{$email}/memberships");
+            return $this->getEntries($response);
+        } catch (ResourceNotFoundException $e) {
             throw new EmailNotFoundException;
         }
     }
 
     /**
-     * @param $listFqdnName
-     * @param $userName
-     * @param $userEmail
+     * Returns a given member of a list
      *
-     * @return bool
-     * @throws EmailAlreadySubscribedException
+     * @param $listName string Can be either fqdn_listname or list_id
+     * @param $email string Email address to look for
+     *
+     * @return mixed
+     * @throws EmailNotFoundException
      * @throws GuzzleException
      * @throws InvalidEmailException
      * @throws NonExistingListException
      */
-    public function subscribe($listFqdnName, $userName, $userEmail)
+    public function getListMember($listName, $email)
     {
-        $list = $this->getListByFqdnName($listFqdnName);
         try {
-            $response = $this->sendRequest('POST', 'members', [
+            $response = $this->sendRequest('GET', "lists/{$listName}/member/{$email}");
+            $member = $this->getEntries($response);
+
+            if (empty($member)) {
+                throw new EmailNotFoundException;
+            }
+
+            return $member;
+        } catch (ResourceNotFoundException $e) {
+            // Either e-mail or list could be missing, let's find out which one
+            $list = $this->getList($listName);
+            if (empty($list)) {
+                throw new NonExistingListException;
+            } else {
+                throw new EmailNotFoundException;
+            }
+        }
+    }
+
+    /**
+     * @param $listName string Can be either fqdn_listname or list_id
+     * @param $userName string User's name
+     * @param $email string Email address to unsubscibe
+     *
+     * @return void
+     * @throws EmailAlreadySubscribedException
+     * @throws GuzzleException
+     * @throws InvalidEmailException
+     * @throws NonExistingListException
+     * @throws ResourceNotFoundException
+     */
+    public function subscribe($listName, $userName, $email)
+    {
+        $list = $this->getList($listName);
+        try {
+            $this->sendRequest('POST', 'members', [
                 'list_id' => $list->list_id,
                 'display_name' => $userName,
-                'subscriber' => $userEmail,
+                'subscriber' => $email,
                 'pre_verified' => true,
                 'pre_confirmed' => true,
                 'pre_approved' => true,
@@ -177,30 +196,21 @@ class Mailman
     }
 
     /**
-     * @param $listFqdnName
-     * @param $userEmail
+     * Unsubscribes an email address from a list
      *
-     * @return bool
+     * @param $listName string Can be either fqdn_listname or list_id
+     * @param $email string Email address to unsubscibe
+     *
+     * @return void
      * @throws EmailNotFoundException
      * @throws GuzzleException
-     * @throws InvalidEmailException
      * @throws NonExistingListException
+     * @throws ResourceNotFoundException
+     * @throws InvalidEmailException
      */
-    public function unsubscribe($listFqdnName, $userEmail)
+    public function unsubscribe($listName, $email)
     {
-        $response = null;
-        $list = $this->getListByFqdnName($listFqdnName);
-        $member = $this->getListMemberById($list->list_id, $userEmail);
-
-        try {
-            $response = $this->sendRequest('DELETE', "members/{$member->member_id}");
-        } catch (ClientException $e) {
-            $errorMessage = ClientException::getResponseBodySummary($e->getResponse());
-            if ($errorMessage === EmailNotFoundException::MAILMAN_ERROR) {
-                throw new EmailNotFoundException;
-            }
-        }
-
-        return $this->getStatus($response);
+        $member = $this->getListMember($listName, $email);
+        $this->sendRequest('DELETE', "members/{$member->member_id}");
     }
 }

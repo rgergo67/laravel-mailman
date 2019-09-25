@@ -21,7 +21,7 @@ class MailmanTest extends BaseTestCase
     {
         $body = file_get_contents(__DIR__.'/../Mocks/Members/membership-body.txt');
         $mailman = $this->getMailman([[200, $body]]);
-        $membership = $mailman->membership('test@localhost.com');
+        $membership = $mailman->getMemberships('test@localhost.com');
         $this->assertCount(1, $membership);
     }
 }

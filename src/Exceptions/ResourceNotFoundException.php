@@ -5,18 +5,19 @@ namespace Rgergo67\LaravelMailman\Exceptions;
 use Exception;
 use Throwable;
 
-class NonExistingListException extends Exception
+class ResourceNotFoundException extends Exception
 {
-    const MAILMAN_ERROR = "404 Not Found";
+    const MAILMAN_ERROR = "";
+    const MAILMAN_CODE = 404;
     /**
-     * NonExistingListException constructor.
+     * InvalidEmailException constructor.
      *
      * @param  string  $message
      * @param  int  $code
      * @param  Throwable|null  $previous
      */
     public function __construct(
-        $message = "List does not exist",
+        $message = "Resource not found",
         $code = 0,
         Throwable $previous = null
     ) {
